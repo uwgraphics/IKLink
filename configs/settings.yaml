@@ -1,0 +1,13 @@
+urdf: spot_sweep.urdf
+link_radius: 0.05 
+base_links:
+  - base_link
+ee_links:
+  - tool_tip
+# starting_config: [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
+starting_config: [ 0.0, -1.10, 2.00, 0.0, -0.90, 0.0 ]
+mode: 0
+# 0 - tranditional relaxedik
+# 1 - single arm with movable base
+# 2 - bi-arm with movable base 
+obstacles:

@@ -1,0 +1,10 @@
+urdf: spot_sweep.urdf
+urdf_movable_base: spot_sweep_movable_base.urdf
+link_radius: 0.05 
+base_links:
+  - base_link
+ee_links:
+  - tool_tip
+# starting_config: [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
+starting_config: [ 0.0, -1.10, 2.00, 0.0, -0.90, 0.0 ]
+obstacles:

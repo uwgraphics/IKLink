@@ -1,0 +1,1 @@
+Generated motions are saved in this folder by default.

@@ -1,0 +1,8 @@
+urdf: iiwa.urdf
+link_radius: 0.05 
+base_links:
+  - iiwa_link_0
+ee_links:
+  - iiwa_link_ee
+starting_config: [ 0.0, 0.0, -1.5708, 1.5708, 0.0, -1.5708, 0.0 ]
+obstacles:

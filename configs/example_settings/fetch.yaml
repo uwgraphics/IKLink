@@ -1,0 +1,9 @@
+urdf: fetch_fixedwaist.urdf
+urdf_movable_base: fetch_fixedwaist_movable_base.urdf
+link_radius: 0.05 
+base_links:
+  - base_link
+ee_links:
+  - gripper_link
+starting_config: [ 0.0, 0.0, -1.5708, 1.5708, 0.0, -1.5708, 0.0 ]
+obstacles:

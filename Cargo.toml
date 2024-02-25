@@ -1,0 +1,54 @@
+[package]
+name = "relaxed_ik_core"
+version = "0.1.0"
+authors = ["djrakita <djrakita@gmail.com>", "yepw <yepingw@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nalgebra = {version = "0.30", features = ["serde-serialize"]}
+yaml-rust = "0.4"
+optimization_engine =  { version = "0.7.7", features = ["wasm"] }
+ndarray = "0.15"
+num = "0.2.0"
+time = "0.1"
+rand = "0.8.5"
+parry3d-f64 = "0.8.0"
+path-slash = "0.1.2"
+lazy_static = "1.4.0"
+csv = "1.1.6"
+chrono = "0.4.19"
+serde = { version = "1.0.136", features = ["derive"] }
+dirs = "4.0.0"
+urdf-rs =  "0.8"
+k = "0.31"
+glob = "0.3.1"
+linfa = "0.7"
+linfa-clustering = "0.7"
+
+# Below are for webassembly
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+serde-wasm-bindgen = "0.4"
+js-sys = "0.3"
+serde_json = "1.0"
+console_error_panic_hook = "0.1"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "console",
+]
+
+[profile.dev]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+
+[lib]
+name = "relaxed_ik_lib"
+path = "src/lib.rs"
+crate-type = ["rlib",  "cdylib"]
+# path = "src/relaxed_ik_web.rs"
+# crate-type = ["cdylib"]
