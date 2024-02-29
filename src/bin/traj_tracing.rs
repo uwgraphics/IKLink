@@ -1,5 +1,5 @@
 
-use std::path;use glob::glob;
+use glob::glob;
 use csv;
 use nalgebra::{Vector3, UnitQuaternion, Quaternion};
 use relaxed_ik_lib::utils_rust::file_utils::{*};

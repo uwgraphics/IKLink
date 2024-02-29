@@ -1,5 +1,5 @@
 
-use ndarray::{Array1};
+use ndarray::Array1;
 
 pub struct Motion {
     pub robot_name: String,
