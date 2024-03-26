@@ -31,7 +31,7 @@ that involve end-effector trajectory tracking, such as welding, sweeping, scanni
     ...
     Constructing nodes for point 766 / 767
     Running dynamic programming algorithm
-    Min Num of Reconfig: 3
+    Min Num of Reconfig: 2
     Saved motion to: <some_dir>/iklink/output_motions/panda_2023-08-25_11-37-55.csv
     ```
     <img src="./docs/example_traj.png" width="480">

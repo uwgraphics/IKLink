@@ -173,31 +173,47 @@ impl IKLink {
 
             // clustering IK solutions using DBSCAN
             let tmp_iks = self.vec_of_arrays_to_2d_array(&mut tmp_ik_table[i]);
-            let clusters = Dbscan::params(2).tolerance(0.05).transform(&tmp_iks).unwrap();
+            let clusters = Dbscan::params(2).tolerance(0.01).transform(&tmp_iks).unwrap();
+
+            assert!(clusters.shape()[0] == tmp_ik_table[i].len());
+
+            let mut labels = vec![false; clusters.shape()[0]];
 
             for j in 0..clusters.shape()[0] {
-                let node = Node::new(tmp_ik_table[i][j].clone());
-                self.table[i].push(node);
+                match clusters[j] {
+                    Some(cluster_idx) => {
+                        if !labels[cluster_idx] {
+                            labels[cluster_idx] = true;
+                            let node = Node::new(tmp_ik_table[i][j].clone());
+                            self.table[i].push(node);
+                        }
+                    },
+                    None => {
+                        let node = Node::new(tmp_ik_table[i][j].clone());
+                        self.table[i].push(node);
+                    }
+                }
             }
 
-            while self.table[i].len() < 300 {
-                // random sampling
+            // random sampling
+            while self.table[i].len() < 200 {
                 let (found_ik, ik) = self.robot.try_to_reach(self.trajectory[i].1, self.trajectory[i].2);
                 if !found_ik {
                     continue;
                 }
                 let node = Node::new(ik);
                 self.table[i].push(node);
+            }
 
-                // greedy propagation
-                let mut r = i;
-                while r < n {
-                    let (found_ik, ik) = self.robot.try_to_track(self.trajectory[r].1, self.trajectory[r].2);
+            // greedy propagation
+            if i < n-1 {
+                for j in 0..self.table[i].len() {
+                    self.robot.ik_solver.reset(self.table[i][j].ik.to_vec());
+                    let (found_ik, ik) = self.robot.try_to_track(self.trajectory[i+1].1, self.trajectory[i+1].2);
                     if !found_ik {
                         break;
                     }
-                    tmp_ik_table[r].push(Array1::from(ik));
-                    r += 1;
+                    tmp_ik_table[i+1].push(Array1::from(ik));
                 }
             }
 
