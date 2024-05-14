@@ -3,7 +3,7 @@
 
 Implementation of our ICRA'24 paper: *IKLink: End-Effector Trajectory Tracking with Minimal Reconfigurations*
 
-[[Pre-print](https://arxiv.org/pdf/2402.16154.pdf)] [[Supplementary Video](https://youtu.be/EB4bJ6rJtnY)]
+[[Pre-print](https://arxiv.org/pdf/2402.16154.pdf)] [[Supplementary Video](https://youtu.be/EB4bJ6rJtnY)] [[Poster](https://yepw.github.io/files/icra24_poster.pdf)]
 ## Introduction
 IKLink enables a robot manipulator to track reference end-effector trajectories of any complexity while performing minimal reconfigurations.  IKLink eliminates the need to manually segment a long or complex trajectory and is beneficial in real-life scenarios
 that involve end-effector trajectory tracking, such as welding, sweeping, scanning, painting, and inspection. For more information, please refer to [our paper](https://arxiv.org/pdf/2402.16154.pdf). 
