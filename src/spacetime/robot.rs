@@ -1,4 +1,4 @@
-use::nalgebra::{Vector3, UnitQuaternion};
+use::nalgebra::{Vector3, UnitQuaternion, Vector6};
 use rand::Rng;
 use crate::utils_rust::file_utils::{*};
 use crate::relaxed_ik::RelaxedIK;
@@ -9,6 +9,7 @@ pub struct Robot {
     pub ik_solver: RelaxedIK,
     pub rng: rand::prelude::ThreadRng,
     pub arm_num_dofs: usize,
+    pub tolerances: Vector6<f64>
 }
 
 impl Robot {
@@ -25,8 +26,40 @@ impl Robot {
             ik_solver,
             rng: rand::thread_rng(),
             arm_num_dofs,
+            tolerances: Vector6::new(0., 0., 0., 0., 0., 0.)
         }
     }
+
+    pub fn set_tolerances(&mut self, tolerances: Vector6<f64>) {
+        self.tolerances = tolerances;
+        self.ik_solver.vars.tolerances[0] = tolerances;
+    }
+
+    pub fn get_random_offsets(&mut self) -> Array1<f64> {
+        let mut offsets = Array1::zeros(self.arm_num_dofs);
+        for i in 0..self.arm_num_dofs {
+            offsets[i] = self.rng.gen_range(-0.2..0.2);
+        }
+        offsets
+    }
+
+    pub fn get_random_arm_a_near_config(&mut self, config: &Array1<f64>) -> Array1<f64> {
+        let new_config = config.clone() + self.get_random_offsets();
+        self.clip_config(&new_config)
+    }
+
+    pub fn clip_config(&self, config: &Array1<f64>) -> Array1<f64> {
+        let mut new_config = config.clone();
+        for i in 0..self.arm_num_dofs {
+            if self.ik_solver.vars.robot.joint_types[i] == "continuous" {
+                new_config[i] = new_config[i].max(-std::f64::consts::PI).min(std::f64::consts::PI);
+            } else {
+                new_config[i] = new_config[i].max(self.ik_solver.vars.robot.lower_joint_limits[i]).min(self.ik_solver.vars.robot.upper_joint_limits[i]);
+            }
+        }
+        new_config
+    }
+
     pub fn get_random_arm_config(&mut self) -> Vec<f64> {
         let mut config = vec![];
         for i in 0..self.arm_num_dofs {
@@ -46,7 +79,17 @@ impl Robot {
     pub fn check_pose(&self, config: &Array1<f64>, pos: Vector3<f64>, quat: UnitQuaternion<f64>) -> bool {
         let (ee_pos, ee_quat) = self.fk(config);
         let pos_diff = (ee_pos - pos).norm();
-        let quat_diff = (ee_quat * quat.inverse()).angle();
+
+        let mut quat_diff = (ee_quat * quat.inverse()).angle();
+        if self.tolerances[5] > 0.01 {
+            let scaled_axis = (quat.inverse()*ee_quat).scaled_axis();
+            // assert! ( f64::abs(scaled_axis.norm() - quat_diff) < 0.001, "scaled_axis {} should be equal to quat_diff {}", scaled_axis.norm(), quat_diff);
+            quat_diff = f64::sqrt(scaled_axis[0].powi(2) + scaled_axis[1].powi(2));
+        } else if self.tolerances[4] > 0.01 {
+            let scaled_axis = (quat.inverse()*ee_quat).scaled_axis();
+            // assert! ( f64::abs(scaled_axis.norm() - quat_diff) < 0.001, "scaled_axis {} should be equal to quat_diff {}", scaled_axis.norm(), quat_diff);
+            quat_diff = f64::sqrt(scaled_axis[0].powi(2) + scaled_axis[2].powi(2));
+        } 
         pos_diff < 0.001 && quat_diff < 0.01
     }
 
@@ -57,7 +100,7 @@ impl Robot {
 
     pub fn try_to_reach(&mut self, pos: Vector3<f64>, quat: UnitQuaternion<f64>) -> (bool, Array1<f64>) {
         // pos and quat are wrt the base frame
-        self.reset_random();
+        // self.reset_random();
         self.ik_solver.vars.goal_positions = vec![pos];
         self.ik_solver.vars.goal_quats = vec![quat];
         let config = self.ik_solver.solve(false);    
@@ -85,9 +128,8 @@ impl Robot {
         assert!(config.len() == prev_config.len(), "config and prev_config should have the same length");
         assert!(config.len() == self.arm_num_dofs, "config and prev_config should have the same length as arm_num_dofs");
         
-        // TODO: parse joint velocity limits from URDF
         for i in 0..config.len() {
-            if (config[i] - prev_config[i]).abs() > self.ik_solver.vars.robot.joint_velocity_limits[i] * delta_t {
+            if (config[i] - prev_config[i]).abs() > self.ik_solver.vars.robot.joint_velocity_limits[i] * delta_t  {
                 return false;
             }
         }

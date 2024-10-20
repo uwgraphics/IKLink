@@ -1,5 +1,6 @@
 
 use ndarray::Array1;
+use std::fmt;
 
 pub struct Motion {
     pub robot_name: String,
@@ -14,5 +15,11 @@ impl Motion {
             joint_names: vec![],
             data: vec![],
         }
+    }
+}
+
+impl fmt::Debug for Motion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Motion {{ robot_name: {}, joint_names: {:?}, data: {:?} }}", self.robot_name, self.joint_names, self.data)
     }
 }

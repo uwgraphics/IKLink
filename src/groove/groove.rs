@@ -32,7 +32,7 @@ impl OptimizationEngineOpen {
 
         /* PROBLEM STATEMENT */
         let problem = Problem::new(&bounds, df, f);
-        let mut panoc = PANOCOptimizer::new(problem, &mut self.cache).with_max_iter(max_iter).with_tolerance(0.0001);
+        let mut panoc = PANOCOptimizer::new(problem, &mut self.cache).with_max_iter(max_iter).with_tolerance(0.00001);
         // let mut panoc = PANOCOptimizer::new(problem, &mut self.cache);
 
         // Invoke the solver

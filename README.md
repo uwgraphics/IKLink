@@ -1,14 +1,8 @@
 
-# IKLink
+# Anytime IKLink
 
-Implementation of our ICRA'24 paper: *IKLink: End-Effector Trajectory Tracking with Minimal Reconfigurations*
-
-[[Pre-print](https://arxiv.org/pdf/2402.16154.pdf)] [[Supplementary Video](https://youtu.be/EB4bJ6rJtnY)] [[Poster](https://yepw.github.io/files/icra24_poster.pdf)]
 ## Introduction
-IKLink enables a robot manipulator to track reference end-effector trajectories of any complexity while performing minimal reconfigurations.  IKLink eliminates the need to manually segment a long or complex trajectory and is beneficial in real-life scenarios
-that involve end-effector trajectory tracking, such as welding, sweeping, scanning, painting, and inspection. For more information, please refer to [our paper](https://arxiv.org/pdf/2402.16154.pdf). 
-
-![IKLink](./docs/teaser.png)
+IKLink enables a robot manipulator to track reference end-effector trajectories of any complexity while performing minimal reconfigurations. This repository implements IKLink with an anytime framework, allowing it to quickly generate initial motions and continuously refine them over time.
 
 ## Getting Started 
 
@@ -21,34 +15,55 @@ that involve end-effector trajectory tracking, such as welding, sweeping, scanni
     ```bash
     cargo run --bin traj_tracing
     ```
-    The demo processes end-effector trajectories in `input_trajectories` and saves the generated motions in `output_motions`. 
+    The demo processes end-effector trajectories in `input_trajectories` and saves the generated motions in `output_motions`. For example, `iiwa_hello0+iklink_anytime9+12057` is the robot motion after 9 iterations and the time usage is 12.057s. 
     
-    We note that this Rust implementation is about 10x fasters than the Python implementation described in the paper. 
 4. Expected output:
     ```bash
-    Constructing nodes for point 0 / 767
-    Constructing nodes for point 1 / 767
+    # for the `iiwa_hello.csv` input trajectory
+    Sampled 50 IK solutions for point 0 / 552
+    Sampled 50 IK solutions for point 10 / 552
     ...
-    Constructing nodes for point 766 / 767
-    Running dynamic programming algorithm
-    Min Num of Reconfig: 2
-    Saved motion to: <some_dir>/iklink/output_motions/panda_2023-08-25_11-37-55.csv
+    Sampled 50 IK solutions for point 552 / 552
+    Pre DP -- num_reconfig: 0, num_sparse_edge: 56, jnt_movement: 14.158923892575855
+    DP -- num_reconfig: 0, num_sparse_edge: 0, jnt_movement: 14.817506209637592
+    Saved motion to: <some dir>/IKLink/output_motions/iiwa_hello0+iklink_anytime0+1130.csv
+    ...
+    # for the `panda_random.csv` input trajectory
+    Sampled 50 IK solutions for point 0 / 459
+    Sampled 50 IK solutions for point 10 / 459
+    ...
+    Sampled 50 IK solutions for point 459 / 459
+    Pre DP -- num_reconfig: 1, num_sparse_edge: 46, jnt_movement: 10.73735426281498
+    ...
+    DP -- num_reconfig: 2, num_sparse_edge: 0, jnt_movement: 10.982038551111707
+    ...
+    DP -- num_reconfig: 1, num_sparse_edge: 0, jnt_movement: 11.8840288009443
+    ...
+
     ```
+
+5. Visualization
+
     <img src="./docs/example_traj.png" width="480">
 
-## Supplementary Video
+    The output motions can be visualized using [Motion Comparator](https://pages.graphics.cs.wisc.edu/MotionComparator/). For example, to visualize `iiwa_hello0+iklink_anytimeX_XXXX.csv`,
+    
+    * Open a scene
 
-[YouTube video link](https://youtu.be/EB4bJ6rJtnY)
+        Click and drag "Scene 1" in the upper left cornor to open it
+    * Add an iiwa robot
+    
+        In the panel on the right, under the "File" tab, locate the mesh section. Choose "iiwa" from the drop-down menu, then click the "confirm" button. An iiwa robot will be added to Scene 1.
+    *  Upload the motion file
 
-## Citation
+        In the panel on the right, under the "File" tab, locate the motion section. Click "Browse file", then choose your local file: `iiwa_hello0+iklink_anytimeX_XXXX.csv`. Upload the selected file.
+    *  Play the motion
+        
+        Click the play button located in the lower left corner to play the motion.
 
-```
-@inproceedings{wang2024iklink,
-  title={ IKLink: End-Effector Trajectory Tracking with Minimal Reconfigurations},
-  author={Wang, Yeping and Sifferman, Carter and Gleicher Michael},
-  booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)},
-  year={2024},
-  organization={IEEE}
-}
-```
+
+
+
+
+
 

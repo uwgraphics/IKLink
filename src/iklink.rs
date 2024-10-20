@@ -6,41 +6,20 @@ use nalgebra::{UnitQuaternion, Vector3};
 use crate::spacetime::motion::Motion;
 use linfa_clustering::Dbscan;
 use linfa::traits::*;
-use ndarray::{Array1, Array2};
+use ndarray::Array1;
+use crate::nodes::Node::Node;
+use crate::utils::vec_of_arrays_to_2d_array;
 
-pub struct Node {
-    pub ik: Array1<f64>,
-    pub primary_score: f64,
-    pub secondary_score: f64,
-    pub predecessor: usize,
-}
-
-impl Node {
-    pub fn new(ik: Array1<f64>) -> Self {
-        
-        let primary_score = 100000.0;
-        let secondary_score = 100000.0;
-        let predecessor = 0;
-
-        Node {
-            ik,
-            primary_score,
-            secondary_score,
-            predecessor,
-        }
-    }
-}
-
-pub struct IKLink {
+pub struct IKLink<N: Node> {
     pub robot: Robot,
     pub trajectory: Vec<(f64, Vector3<f64>, UnitQuaternion<f64>)>,
 
-    pub table: Vec<Vec<Node>>,
+    pub table: Vec<Vec<N>>,
 
     pub rng: rand::prelude::ThreadRng,
 }
 
-impl IKLink {
+impl <N:Node> IKLink<N> {
     fn dp(&mut self) -> Motion{
         assert!(self.trajectory.len() == self.table.len());
 
@@ -50,71 +29,27 @@ impl IKLink {
 
         // first column
         for y in 0..self.table[0].len() {
-            self.table[0][y].primary_score = 0.0;
-            self.table[0][y].secondary_score = 0.0;
-            self.table[0][y].predecessor = 0;
+            self.table[0][y].reset_for_first_col();
         }
 
         // rest of the columns
         for x in 1..n {
-
-            let delta_t = self.trajectory[x].0 - self.trajectory[x-1].0;
-
-            let mut min_primary_score_with_config = 100000.0;
-            let mut min_secondary_score_with_config = 100000.0;
-            let mut min_idx_with_config: usize = 0;
-
-            // find best predecessor with an arm reconfiguration
-            for y2 in 0..self.table[x-1].len() {
-                let primary_score = self.table[x-1][y2].primary_score + 1.0;
-                let secondary_score = self.table[x-1][y2].secondary_score;
-
-                if primary_score < min_primary_score_with_config || (primary_score == min_primary_score_with_config && secondary_score < min_secondary_score_with_config) {
-                    min_primary_score_with_config = primary_score;
-                    min_secondary_score_with_config = secondary_score;
-                    min_idx_with_config = y2;
-                }
-            }
-
-            // find best predecessor with no arm reconfiguration
             for y1 in 0..self.table[x].len() {
-                let mut min_primary_score = min_primary_score_with_config;
-                let mut min_secondary_score = min_secondary_score_with_config;
-                let mut predecessor = min_idx_with_config;
+                let mut node = self.table[x][y1].clone();
                 for y2 in 0..self.table[x-1].len() {
-
-                    if self.robot.check_velocity(&self.table[x][y1].ik, &self.table[x-1][y2].ik, delta_t) {
-                        let primary_score = self.table[x-1][y2].primary_score;
-                        let secondary_score = self.table[x-1][y2].secondary_score + self.robot.joint_movement(&self.table[x][y1].ik, &self.table[x-1][y2].ik);
-                        if primary_score < min_primary_score {
-                            min_primary_score = primary_score;
-                            min_secondary_score = secondary_score;
-                            predecessor = y2;
-                        }
-                    }
+                    node.try_to_connect(  &self.table[x-1][y2], (x-1,y2), &self.robot);
                 }
-                self.table[x][y1].primary_score = min_primary_score;
-                self.table[x][y1].secondary_score = min_secondary_score;
-                self.table[x][y1].predecessor = predecessor;
+                self.table[x][y1] = node;
             }            
         }
 
         // find best score in the last column
-        let mut best_primary_score = 100000.0;
-        let mut best_secondary_score = 100000.0;
-        let mut best_idx = 0;
-        for j in 0..self.table[n-1].len() {
-            let primary_score = self.table[n-1][j].primary_score;
-            let secondary_score = self.table[n-1][j].secondary_score;
-            if primary_score < best_primary_score || (primary_score == best_primary_score && secondary_score < best_secondary_score) {
-                best_primary_score = primary_score;
-                best_secondary_score = secondary_score;
-                best_idx = j;
-            }
+        let mut best_node = self.table[n-1][0].clone();
+        for j in 1..self.table[n-1].len() {
+            best_node.compare_and_update_node(&self.table[n-1][j]);
         }
 
-        assert!(best_primary_score < 100000.0, "No valid solution found!");
-        println!("Min Num of Reconfig: {}", best_primary_score);
+        println!("iklink performance: {}", best_node.get_performance());
 
         let mut motion = Motion {
             robot_name: self.robot.robot_name.clone(),
@@ -123,41 +58,23 @@ impl IKLink {
         };
 
         // backtrace
-        let mut idx: usize = best_idx;
-        for i in (0..n).rev() {
-            motion.data.push((self.trajectory[i].0, self.table[i][idx].ik.clone()));
-            idx = self.table[i][idx].predecessor;
+        loop {
+            motion.data.push((best_node.get_time(), best_node.get_ik().clone()));
+            if !best_node.has_predecessor() {
+                break;
+            }
+            let p = best_node.get_predecessor();
+            best_node = self.table[p.0][p.1].clone();
         }
 
+       
         motion.data.reverse();
         
         motion
     }
 
-
-    fn vec_of_arrays_to_2d_array(&self, vec: &mut Vec<Array1<f64>>) -> Array2<f64> {
-        if vec.is_empty() {
-            return Array2::zeros((0, 0)); // Return an empty 2D array if the input vector is empty
-        }
-
-        let nrows = vec.len(); // Number of rows in the 2D array
-        let ncols = vec[0].len(); // Number of columns in the 2D array, assuming all 1D arrays are the same size
-
-        // Initialize a 2D array with zeros
-        let mut array2d = Array2::<f64>::zeros((nrows, ncols));
-
-        for (i, array) in vec.into_iter().enumerate() {
-            // Make sure each 1D array is the correct size; this example does not handle errors
-            assert_eq!(array.len(), ncols, "All arrays must have the same size");
-
-            // Copy the elements from the 1D array into the corresponding row of the 2D array
-            array2d.row_mut(i).assign(&array);
-        }
-
-        array2d
-    }
-
-    fn sample_candidates(&mut self) {
+    
+    fn sample_candidates(&mut self, num_samples: usize) {
 
         let n = self.trajectory.len();
 
@@ -171,8 +88,8 @@ impl IKLink {
 
             println!("Constructing nodes for point {} / {}", i, n);
 
-            // clustering IK solutions using DBSCAN
-            let tmp_iks = self.vec_of_arrays_to_2d_array(&mut tmp_ik_table[i]);
+            // // clustering IK solutions using DBSCAN
+            let tmp_iks = vec_of_arrays_to_2d_array(&mut tmp_ik_table[i]);
             let clusters = Dbscan::params(2).tolerance(0.01).transform(&tmp_iks).unwrap();
 
             assert!(clusters.shape()[0] == tmp_ik_table[i].len());
@@ -184,34 +101,35 @@ impl IKLink {
                     Some(cluster_idx) => {
                         if !labels[cluster_idx] {
                             labels[cluster_idx] = true;
-                            let node = Node::new(tmp_ik_table[i][j].clone());
+                            let node = Node::new(tmp_ik_table[i][j].clone(), self.trajectory[i].0, "clustering".to_string());
                             self.table[i].push(node);
                         }
                     },
                     None => {
-                        let node = Node::new(tmp_ik_table[i][j].clone());
+                        let node = Node::new(tmp_ik_table[i][j].clone(), self.trajectory[i].0, "clustering".to_string());
                         self.table[i].push(node);
                     }
                 }
             }
 
             // random sampling
-            while self.table[i].len() < 200 {
+            while self.table[i].len() < num_samples {
+                self.robot.reset_random();  
                 let (found_ik, ik) = self.robot.try_to_reach(self.trajectory[i].1, self.trajectory[i].2);
                 if !found_ik {
                     continue;
                 }
-                let node = Node::new(ik);
+                let node = Node::new(ik, self.trajectory[i].0, "random".to_string());
                 self.table[i].push(node);
             }
 
             // greedy propagation
             if i < n-1 {
                 for j in 0..self.table[i].len() {
-                    self.robot.ik_solver.reset(self.table[i][j].ik.to_vec());
+                    self.robot.ik_solver.reset(self.table[i][j].get_ik().to_vec());
                     let (found_ik, ik) = self.robot.try_to_track(self.trajectory[i+1].1, self.trajectory[i+1].2);
                     if !found_ik {
-                        break;
+                        continue;
                     }
                     tmp_ik_table[i+1].push(Array1::from(ik));
                 }
@@ -220,13 +138,13 @@ impl IKLink {
         }
     }
 
-    pub fn new(robot_name: &str, traj: Vec<(f64, Vector3<f64>, UnitQuaternion<f64>)>) -> Self {
+    pub fn new(robot_name: &str, traj: &Vec<(f64, Vector3<f64>, UnitQuaternion<f64>)>) -> Self {
         
         let robot = Robot::new(robot_name);
 
         let table = vec![];
 
-        IKLink {
+        IKLink{
             robot,
             trajectory:  traj.clone(),
             table,
@@ -234,9 +152,9 @@ impl IKLink {
         }
     }
 
-    pub fn solve(&mut self ) -> Motion{
+    pub fn solve(&mut self, num_samples: usize) -> Motion{
 
-        self.sample_candidates();
+        self.sample_candidates(num_samples);
         self.dp()
 
     }
