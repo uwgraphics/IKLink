@@ -114,7 +114,7 @@ fn tracking(debug: bool, repeat: usize, time_limit: u64, tolerance: Vector6<f64>
                         let total_start = Instant::now();
                         let mut iklink_anytime = IKLinkAnytime::<IKLinkAnytimeNode>::new(robot_name, &traj);
                         iklink_anytime.robot.set_tolerances(tolerance);
-                        let res = iklink_anytime.pre_solve(10, 50, debug);
+                        let res = iklink_anytime.pre_solve(5, 50, debug);
                         let mut pre_duration = total_start.elapsed();
                         if debug {
                             // println!("Pre-solve result: {:?}", res.unwrap());

@@ -1,8 +1,12 @@
 
 # Anytime IKLink
 
+Implementation of our RAL'25 paper: *Anytime Planning for End-Effector Trajectory Tracking*
+
+[[Pre-print](https://arxiv.org/pdf/2502.03676.pdf)]
 ## Introduction
-IKLink enables a robot manipulator to track reference end-effector trajectories of any complexity while performing minimal reconfigurations. This repository implements IKLink with an anytime framework, allowing it to quickly generate initial motions and continuously refine them over time.
+IKLink enables a robot manipulator to track reference end-effector trajectories of any complexity while performing minimal reconfigurations. This repository implements IKLink with an anytime framework, allowing it to quickly generate initial motions and continuously refine them over time. 
+For more information, please refer to [our paper](https://arxiv.org/pdf/2302.03676.pdf).
 
 ## Getting Started 
 
@@ -61,6 +65,15 @@ IKLink enables a robot manipulator to track reference end-effector trajectories 
         
         Click the play button located in the lower left corner to play the motion.
 
+## Citation
+```
+@article{wang2025anytime,
+  title={Anytime Planning for End-Effector Trajectory Tracking},
+  author={Wang, Yeping and Gleicher, Michael},
+  booktitle={2025 IEEE Robotics and Automation Letters (RAL)},
+  year={2025}
+}
+```
 
 
 
